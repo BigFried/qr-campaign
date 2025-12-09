@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>BigFried QR #1</title>
+  <style>
+    body { font-family: Arial; text-align: center; padding: 40px; }
+    .win { color: green; font-size: 32px; font-weight: bold; }
+    .lose { color: red; font-size: 28px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h2>ثانية واحدة… بنحقق!</h2>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAnE3HIxB7Vw5s8Z50RKYJbfchZfNdPfvI",
+    authDomain: "bigfried-qr.firebaseapp.com",
+    databaseURL: "https://bigfried-qr-default-rtdb.firebaseio.com",
+    projectId: "bigfried-qr",
+    storageBucket: "bigfried-qr.firebasestorage.app",
+    messagingSenderId: "312013376338",
+    appId: "1:312013376338:web:66f318f9ed89718b4bc88b",
+    measurementId: "G-LY132NMZ0X"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  // رقم QR 1
+  const qrId = "1";
+  const qrRef = ref(db, "qrs/" + qrId);
+
+  get(qrRef).then(snapshot => {
+    const data = snapshot.val();
+
+    if (data && data.winner === true) {
+      document.body.innerHTML = `
+        <h1 class="lose">للأسف حد سبقك 😢</h1>
+        <p>تابعنا… في حاجات جامدة جاية في افتتاح BigFried 🔥</p>
+      `;
+    } else {
+      set(qrRef, {
+        winner: true,
+        time: new Date().toISOString()
+      });
+
+      document.body.innerHTML = `
+        <h1 class="win">مبرووووووك! 🎉🔥</h1>
+        <p>إنت أول واحد لقى الـ QR ده!</p>
+        <p>استنى الافتتاح الكبير… وهديتك محجوزة ❤️</p>
+      `;
+    }
+  });
+</script>
+
+</body>
+</html>
