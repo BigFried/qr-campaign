@@ -1,31 +1,228 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>BigFried - Redeem Serial</title>
+  <title>BigFried | Redeem</title>
   <style>
-    body { font-family: system-ui, Arial; padding: 20px; max-width: 520px; margin: auto; }
-    input, button { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
-    button { cursor: pointer; }
-    .box { margin-top: 14px; padding: 12px; border-radius: 12px; background: #f6f6f6; }
-    .ok { color: #0a7a0a; font-weight: 800; }
-    .bad { color: #b30000; font-weight: 800; }
-    .muted { color: #666; font-size: 14px; }
+    :root{
+      --bg:#0b0f14;
+      --card:#121826;
+      --muted:#8aa0b6;
+      --text:#e9f2ff;
+      --ok:#18c964;
+      --bad:#ff4d4f;
+      --warn:#f5a524;
+      --line: rgba(255,255,255,.08);
+      --btn:#e60000;
+      --btn2:#1b2638;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      background: radial-gradient(1200px 600px at 20% 0%, rgba(230,0,0,.22), transparent 60%),
+                  radial-gradient(900px 500px at 80% 20%, rgba(24,201,100,.14), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .wrap{width:100%; max-width:560px}
+    .brand{
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:14px;
+    }
+    .brand .title{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .brand h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .brand p{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .badge{
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(255,255,255,.03);
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border: 1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      backdrop-filter: blur(8px);
+    }
+    .field{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-direction:column;
+    }
+    label{font-size:13px; color:var(--muted)}
+    .inputRow{
+      display:flex; gap:10px;
+    }
+    input{
+      flex:1;
+      padding:14px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color:var(--text);
+      outline:none;
+      font-size:16px;
+      letter-spacing:.2px;
+    }
+    input::placeholder{color:rgba(138,160,182,.65)}
+    .btn{
+      border:none;
+      border-radius:14px;
+      padding:14px 16px;
+      cursor:pointer;
+      font-weight:800;
+      font-size:15px;
+      transition:transform .05s ease, opacity .2s ease;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:active{transform:scale(.99)}
+    .btnPrimary{background:var(--btn); color:#fff;}
+    .btnSecondary{background:var(--btn2); color:var(--text); border:1px solid var(--line);}
+    .btnGhost{background:transparent; color:var(--muted); border:1px dashed var(--line);}
+    .row{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    .row .btn{flex:1}
+    .status{
+      margin-top:14px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      padding:14px;
+      background:rgba(255,255,255,.03);
+      display:none;
+    }
+    .statusHeader{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:800;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+    }
+    .pill.ok{color:var(--ok); border-color:rgba(24,201,100,.25); background:rgba(24,201,100,.08);}
+    .pill.bad{color:var(--bad); border-color:rgba(255,77,79,.25); background:rgba(255,77,79,.08);}
+    .pill.warn{color:var(--warn); border-color:rgba(245,165,36,.25); background:rgba(245,165,36,.10);}
+    .kv{
+      display:grid;
+      grid-template-columns: 120px 1fr;
+      gap:8px 10px;
+      font-size:14px;
+      margin-top:10px;
+    }
+    .k{color:var(--muted)}
+    .v{color:var(--text); word-break:break-word}
+    .small{color:var(--muted); font-size:12px; margin-top:10px; line-height:1.5}
+    .typeTag{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:6px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      font-size:12px;
+      color:var(--muted);
+      margin-top:8px;
+    }
+    .toast{
+      position:fixed;
+      bottom:18px;
+      left:18px;
+      right:18px;
+      max-width:560px;
+      margin:auto;
+      background:rgba(0,0,0,.75);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:12px 14px;
+      display:none;
+      font-size:13px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>تأكيد/صرف سيريال الخصم</h2>
+<div class="wrap">
+  <div class="brand">
+    <div class="title">
+      <h1>BigFried — صفحة صرف السيريال</h1>
+      <p>اكتب السيريال → تحقق → لو صالح اضغط “تم الصرف”</p>
+    </div>
+    <div class="badge">Admin</div>
+  </div>
 
-  <label class="muted">اكتب السيريال (زي: BIG50-20251216-00001-1234)</label>
-  <input id="serial" placeholder="Serial..." />
+  <div class="card">
+    <div class="field">
+      <label>Serial</label>
+      <div class="inputRow">
+        <input id="serial" placeholder="مثال: BIG50-20251216-00001-1234" autocomplete="off" />
+      </div>
+      <div class="row">
+        <button class="btn btnPrimary" id="checkBtn">🔎 تحقق</button>
+        <button class="btn btnSecondary" id="redeemBtn" style="display:none;">✅ تم الصرف</button>
+        <button class="btn btnGhost" id="copyBtn" style="display:none;">📋 نسخ</button>
+      </div>
+      <div class="small">
+        * لو طلع “مستخدم قبل كده” يبقى السيريال اتصرف خلاص.<br>
+        * لو “مش موجود” يبقى السيريال غلط أو متزوّر.
+      </div>
+    </div>
 
-  <button id="checkBtn">تحقق</button>
-  <button id="redeemBtn" style="display:none;">✅ تم الصرف (اقفل السيريال)</button>
+    <div class="status" id="statusBox">
+      <div class="statusHeader">
+        <div>
+          <div style="font-weight:900;font-size:16px" id="statusTitle">—</div>
+          <div class="typeTag" id="typeTag" style="display:none;">🏷️ <span id="typeText"></span></div>
+        </div>
+        <div class="pill" id="statusPill">—</div>
+      </div>
 
-  <div id="result" class="box" style="display:none;"></div>
+      <div class="kv">
+        <div class="k">Serial</div><div class="v" id="vSerial">—</div>
+        <div class="k">Created</div><div class="v" id="vCreated">—</div>
+        <div class="k">Redeemed</div><div class="v" id="vRedeemed">—</div>
+        <div class="k">RedeemedAt</div><div class="v" id="vRedeemedAt">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -48,24 +245,80 @@
   const serialInput = document.getElementById("serial");
   const checkBtn = document.getElementById("checkBtn");
   const redeemBtn = document.getElementById("redeemBtn");
-  const resultBox = document.getElementById("result");
+  const copyBtn = document.getElementById("copyBtn");
+
+  const statusBox = document.getElementById("statusBox");
+  const statusTitle = document.getElementById("statusTitle");
+  const statusPill = document.getElementById("statusPill");
+  const typeTag = document.getElementById("typeTag");
+  const typeText = document.getElementById("typeText");
+
+  const vSerial = document.getElementById("vSerial");
+  const vCreated = document.getElementById("vCreated");
+  const vRedeemed = document.getElementById("vRedeemed");
+  const vRedeemedAt = document.getElementById("vRedeemedAt");
+
+  const toast = document.getElementById("toast");
 
   let currentSerial = null;
   let currentData = null;
 
-  function show(html) {
-    resultBox.style.display = "block";
-    resultBox.innerHTML = html;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.style.display = "block";
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=> toast.style.display="none", 1600);
+  }
+
+  function showStatus({title, pillText, pillClass, serial, createdAt, redeemed, redeemedAt, type}){
+    statusBox.style.display = "block";
+    statusTitle.textContent = title;
+
+    statusPill.className = "pill " + (pillClass || "");
+    statusPill.textContent = pillText;
+
+    vSerial.textContent = serial || "—";
+    vCreated.textContent = createdAt || "—";
+    vRedeemed.textContent = redeemed ? "Yes" : "No";
+    vRedeemedAt.textContent = redeemedAt || "—";
+
+    if (type) {
+      typeTag.style.display = "inline-flex";
+      typeText.textContent = type;
+    } else {
+      typeTag.style.display = "none";
+    }
+  }
+
+  function normalizeType(type){
+    if (!type) return "unknown";
+    if (type === "combo") return "COMBO";
+    if (type === "luck") return "LUCK";
+    if (type === "10") return "10%";
+    if (type === "15") return "15%";
+    if (type === "25") return "25%";
+    if (type === "50") return "50%";
+    return String(type);
   }
 
   async function checkSerial() {
     const serial = serialInput.value.trim();
     redeemBtn.style.display = "none";
+    copyBtn.style.display = "none";
     currentSerial = null;
     currentData = null;
 
     if (!serial) {
-      show(`<div class="bad">اكتب السيريال الأول</div>`);
+      showStatus({
+        title: "اكتب السيريال الأول",
+        pillText: "Missing",
+        pillClass: "warn",
+        serial: "",
+        createdAt: "",
+        redeemed: false,
+        redeemedAt: "",
+        type: ""
+      });
       return;
     }
 
@@ -73,7 +326,16 @@
     const snap = await get(winnerRef);
 
     if (!snap.exists()) {
-      show(`<div class="bad">❌ السيريال ده مش موجود</div>`);
+      showStatus({
+        title: "السيريال مش موجود ❌",
+        pillText: "Not Found",
+        pillClass: "bad",
+        serial,
+        createdAt: "",
+        redeemed: false,
+        redeemedAt: "",
+        type: ""
+      });
       return;
     }
 
@@ -81,47 +343,86 @@
     currentSerial = serial;
     currentData = data;
 
-    const type = data.type || "unknown";
+    const type = normalizeType(data.type);
     const createdAt = data.createdAt || "";
     const redeemed = data.redeemed === true;
 
+    copyBtn.style.display = "inline-flex";
+
     if (redeemed) {
-      show(`
-        <div class="bad">❌ مستخدم قبل كده</div>
-        <div class="muted">Type: ${type}</div>
-        <div class="muted">Created: ${createdAt}</div>
-        <div class="muted">RedeemedAt: ${data.redeemedAt || "-"}</div>
-      `);
+      showStatus({
+        title: "مستخدم قبل كده ❌",
+        pillText: "Redeemed",
+        pillClass: "bad",
+        serial,
+        createdAt,
+        redeemed: true,
+        redeemedAt: data.redeemedAt || "-",
+        type
+      });
       return;
     }
 
-    show(`
-      <div class="ok">✅ صالح ولسه ما اتصرفش</div>
-      <div class="muted">Type: ${type}</div>
-      <div class="muted">Created: ${createdAt}</div>
-    `);
+    showStatus({
+      title: "صالح ولسه ما اتصرفش ✅",
+      pillText: "Valid",
+      pillClass: "ok",
+      serial,
+      createdAt,
+      redeemed: false,
+      redeemedAt: "",
+      type
+    });
 
-    redeemBtn.style.display = "block";
+    redeemBtn.style.display = "inline-flex";
   }
 
   async function redeemSerial() {
     if (!currentSerial) return;
 
     const winnerRef = ref(db, `campaign/winners/${currentSerial}`);
-
-    // اقفل السيريال
     await update(winnerRef, {
       redeemed: true,
       redeemedAt: new Date().toISOString()
     });
 
     redeemBtn.style.display = "none";
-    show(`<div class="ok">✅ تم الصرف واتقفل السيريال</div>`);
+
+    showStatus({
+      title: "تم الصرف واتقفل السيريال ✅",
+      pillText: "Redeemed Now",
+      pillClass: "ok",
+      serial: currentSerial,
+      createdAt: currentData?.createdAt || "",
+      redeemed: true,
+      redeemedAt: new Date().toISOString(),
+      type: normalizeType(currentData?.type)
+    });
+
+    showToast("تم الصرف ✅");
+  }
+
+  async function copySerial(){
+    const serial = serialInput.value.trim();
+    if (!serial) return;
+    try{
+      await navigator.clipboard.writeText(serial);
+      showToast("اتنسخ ✅");
+    }catch{
+      showToast("مش قادر أنسخ على الجهاز ده");
+    }
   }
 
   checkBtn.addEventListener("click", checkSerial);
   redeemBtn.addEventListener("click", redeemSerial);
+  copyBtn.addEventListener("click", copySerial);
+
+  // Enter key = تحقق
+  serialInput.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter") checkSerial();
+  });
 </script>
 
 </body>
 </html>
+
