@@ -1,1 +1,127 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BigFried - Redeem Serial</title>
+  <style>
+    body { font-family: system-ui, Arial; padding: 20px; max-width: 520px; margin: auto; }
+    input, button { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
+    button { cursor: pointer; }
+    .box { margin-top: 14px; padding: 12px; border-radius: 12px; background: #f6f6f6; }
+    .ok { color: #0a7a0a; font-weight: 800; }
+    .bad { color: #b30000; font-weight: 800; }
+    .muted { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+  <h2>تأكيد/صرف سيريال الخصم</h2>
+
+  <label class="muted">اكتب السيريال (زي: BIG50-20251216-00001-1234)</label>
+  <input id="serial" placeholder="Serial..." />
+
+  <button id="checkBtn">تحقق</button>
+  <button id="redeemBtn" style="display:none;">✅ تم الصرف (اقفل السيريال)</button>
+
+  <div id="result" class="box" style="display:none;"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAnE3HIxB7Vw5s8Z50RKYJbfchZfNdPfvI",
+    authDomain: "bigfried-qr.firebaseapp.com",
+    databaseURL: "https://bigfried-qr-default-rtdb.firebaseio.com",
+    projectId: "bigfried-qr",
+    storageBucket: "bigfried-qr.firebasestorage.app",
+    messagingSenderId: "312013376338",
+    appId: "1:312013376338:web:66f318f9ed89718b4bc88b",
+    measurementId: "G-LY132NMZ0X"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  const serialInput = document.getElementById("serial");
+  const checkBtn = document.getElementById("checkBtn");
+  const redeemBtn = document.getElementById("redeemBtn");
+  const resultBox = document.getElementById("result");
+
+  let currentSerial = null;
+  let currentData = null;
+
+  function show(html) {
+    resultBox.style.display = "block";
+    resultBox.innerHTML = html;
+  }
+
+  async function checkSerial() {
+    const serial = serialInput.value.trim();
+    redeemBtn.style.display = "none";
+    currentSerial = null;
+    currentData = null;
+
+    if (!serial) {
+      show(`<div class="bad">اكتب السيريال الأول</div>`);
+      return;
+    }
+
+    const winnerRef = ref(db, `campaign/winners/${serial}`);
+    const snap = await get(winnerRef);
+
+    if (!snap.exists()) {
+      show(`<div class="bad">❌ السيريال ده مش موجود</div>`);
+      return;
+    }
+
+    const data = snap.val();
+    currentSerial = serial;
+    currentData = data;
+
+    const type = data.type || "unknown";
+    const createdAt = data.createdAt || "";
+    const redeemed = data.redeemed === true;
+
+    if (redeemed) {
+      show(`
+        <div class="bad">❌ مستخدم قبل كده</div>
+        <div class="muted">Type: ${type}</div>
+        <div class="muted">Created: ${createdAt}</div>
+        <div class="muted">RedeemedAt: ${data.redeemedAt || "-"}</div>
+      `);
+      return;
+    }
+
+    show(`
+      <div class="ok">✅ صالح ولسه ما اتصرفش</div>
+      <div class="muted">Type: ${type}</div>
+      <div class="muted">Created: ${createdAt}</div>
+    `);
+
+    redeemBtn.style.display = "block";
+  }
+
+  async function redeemSerial() {
+    if (!currentSerial) return;
+
+    const winnerRef = ref(db, `campaign/winners/${currentSerial}`);
+
+    // اقفل السيريال
+    await update(winnerRef, {
+      redeemed: true,
+      redeemedAt: new Date().toISOString()
+    });
+
+    redeemBtn.style.display = "none";
+    show(`<div class="ok">✅ تم الصرف واتقفل السيريال</div>`);
+  }
+
+  checkBtn.addEventListener("click", checkSerial);
+  redeemBtn.addEventListener("click", redeemSerial);
+</script>
+
+</body>
+</html>
