@@ -30,7 +30,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getDatabase, ref, runTransaction, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-  // ✅ نفس config بتاعك
+  // ✅ Firebase config بتاعك
   const firebaseConfig = {
     apiKey: "AIzaSyAnE3HIxB7Vw5s8Z50RKYJbfchZfNdPfvI",
     authDomain: "bigfried-qr.firebaseapp.com",
@@ -46,46 +46,62 @@
   const db  = getDatabase(app);
 
   // ✅ صورك
-  const IMG_10  = "../images/10.png";
-  const IMG_15  = "../images/15.png";
-  const IMG_25  = "../images/25.png";
-  const IMG_50  = "../images/50.png";
-  const IMG_COMBO = "../images/combo.png";
-  const IMG_LUCK  = "../images/goodLuck.png";
+  const IMG_10     = "../images/10.png";
+  const IMG_15     = "../images/15.png";
+  const IMG_25     = "../images/25.png";
+  const IMG_50     = "../images/50.png";
+  const IMG_COMBO  = "../images/combo.png";
+  const IMG_LUCK   = "../images/goodLuck.png";
 
-  // ✅ اختيار نتيجة عادية (بدون 50%)
-function pickNormalReward() {
-  const pool = [
-    // 10% كتير جداً
-    IMG_10, IMG_10, IMG_10, IMG_10, IMG_10, IMG_10, IMG_10,
+  // ✅ اختيار نتيجة عادية + نرجّع النوع والصورة (عشان نديها Serial)
+  function pickNormalReward() {
+    const pool = [
+      // 10% كتير جداً
+      { type: "10", img: IMG_10 }, { type: "10", img: IMG_10 }, { type: "10", img: IMG_10 },
+      { type: "10", img: IMG_10 }, { type: "10", img: IMG_10 }, { type: "10", img: IMG_10 },
+      { type: "10", img: IMG_10 },
 
-    // Combo كتير
-    IMG_COMBO, IMG_COMBO, IMG_COMBO, IMG_COMBO, IMG_COMBO,
+      // Combo كتير
+      { type: "combo", img: IMG_COMBO }, { type: "combo", img: IMG_COMBO }, { type: "combo", img: IMG_COMBO },
+      { type: "combo", img: IMG_COMBO }, { type: "combo", img: IMG_COMBO },
 
-    // GoodLuck متوسط
-    IMG_LUCK, IMG_LUCK, IMG_LUCK,
+      // GoodLuck متوسط (نعتبره "luck" عادي وله Serial برضو)
+      { type: "luck", img: IMG_LUCK }, { type: "luck", img: IMG_LUCK }, { type: "luck", img: IMG_LUCK },
 
-    // 15% قليل
-    IMG_15, IMG_15,
+      // 15% قليل
+      { type: "15", img: IMG_15 }, { type: "15", img: IMG_15 },
 
-    // 25% نادر
-    IMG_25
-  ];
+      // 25% نادر
+      { type: "25", img: IMG_25 }
+    ];
 
-  return pool[Math.floor(Math.random() * pool.length)];
-}
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
 
-  // ✅ Serial
-  function makeSerial(seq) {
+  // ✅ Prefix لكل نوع
+  function prefixOf(type) {
+    switch (type) {
+      case "50": return "BIG50";
+      case "25": return "BIG25";
+      case "15": return "BIG15";
+      case "10": return "BIG10";
+      case "combo": return "BIGCOMBO";
+      case "luck": return "BIGLUCK";
+      default: return "BIG";
+    }
+  }
+
+  // ✅ Serial عام (مش 50 بس)
+  function makeSerial(prefix, seq) {
     const d = new Date();
     const y = d.getFullYear();
     const m = String(d.getMonth()+1).padStart(2,'0');
     const day = String(d.getDate()).padStart(2,'0');
     const rand = Math.floor(1000 + Math.random() * 9000);
-    return `BIG50-${y}${m}${day}-${String(seq).padStart(5,'0')}-${rand}`;
+    return `${prefix}-${y}${m}${day}-${String(seq).padStart(5,'0')}-${rand}`;
   }
 
-  // ✅ هنا بنسجل كل Scan ونقرر 50% ولا لا
+  // ✅ تسجيل كل Scan وتحديد النتيجة + Serial
   const campaignRef = ref(db, "campaign");
 
   const tx = await runTransaction(campaignRef, (data) => {
@@ -93,34 +109,41 @@ function pickNormalReward() {
       data = { scanCount: 0, sinceLast50: 0, serialSeq: 0 };
     }
 
-    // زوّد عداد الاسكانات
     data.scanCount = (data.scanCount || 0) + 1;
-
-    // عدد الاسكانات من آخر مرة 50%
     data.sinceLast50 = (data.sinceLast50 || 0) + 1;
 
     const n = data.sinceLast50;
 
-    // ✅ Probability Ramp (50% نادر بس موجود)
+    // ✅ Probability Ramp للـ 50%
     let p = 0;
     if (n <= 10) p = 0;
     else if (n <= 20) p = 0.02;
     else if (n <= 30) p = 0.05;
     else if (n <= 40) p = 0.12;
     else if (n <= 50) p = 0.25;
-    else p = 1; // بعد 50 اسكان: لازم يطلع
+    else p = 1;
 
     const win50 = Math.random() < p;
 
+    // ✅ نختار النوع
+    let rewardType = "normal";
     if (win50) {
-      data.serialSeq = (data.serialSeq || 0) + 1;
-      const serial = makeSerial(data.serialSeq);
-
-      data.lastWinner = { type: "50", serial, at: new Date().toISOString() };
-      data.sinceLast50 = 0; // Reset الدورة
+      rewardType = "50";
+      data.sinceLast50 = 0; // Reset
     } else {
-      data.lastWinner = { type: "normal" };
+      // نتيجة عادية: اختار نوع عادي (هنختاره برّه transaction برضو)
+      // هنا هنحط marker بس
+      rewardType = "normal";
     }
+
+    // ✅ زوّد serialSeq دائمًا (علشان أي نتيجة ليها Serial)
+    data.serialSeq = (data.serialSeq || 0) + 1;
+
+    data.lastWinner = {
+      type: rewardType,      // "50" أو "normal"
+      serialSeq: data.serialSeq,
+      at: new Date().toISOString()
+    };
 
     return data;
   });
@@ -131,26 +154,48 @@ function pickNormalReward() {
   const imgEl = document.getElementById("resultImage");
   const overlay = document.getElementById("overlay");
 
+  // ✅ نحدد النتيجة النهائية بعد الـ transaction
+  let finalType, finalImg;
+
   if (lastWinner?.type === "50") {
-    imgEl.src = IMG_50;
-    overlay.style.display = "flex";
-    overlay.innerHTML = `
-      <div>
-        <div style="font-size:22px;font-weight:900">مبرووووك! خصم 50% 🎉</div>
-        <div class="serial">Serial: ${lastWinner.serial}</div>
-        <div style="margin-top:10px;font-size:14px;opacity:.9">صوّر الشاشة وروّح بيها للفرع.</div>
-      </div>
-    `;
-
-    // سجل السيريال في قاعدة البيانات
-    await set(ref(db, `campaign/winners/${lastWinner.serial}`), {
-      createdAt: lastWinner.at,
-      redeemed: false
-    });
-
+    finalType = "50";
+    finalImg = IMG_50;
   } else {
-    imgEl.src = pickNormalReward();
+    const normal = pickNormalReward();
+    finalType = normal.type;     // 10 / 15 / 25 / combo / luck
+    finalImg = normal.img;
   }
+
+  // ✅ نولّد Serial حسب النوع باستخدام seq اللي اتسجل في transaction
+  const serial = makeSerial(prefixOf(finalType), lastWinner.serialSeq);
+
+  // ✅ عرض الصورة + Overlay + Serial (لكل الأنواع)
+  imgEl.src = finalImg;
+  overlay.style.display = "flex";
+
+  const title =
+    finalType === "50"   ? "مبرووووك! خصم 50% 🎉" :
+    finalType === "25"   ? "مبروك! خصم 25% 🎉" :
+    finalType === "15"   ? "مبروك! خصم 15% 🎉" :
+    finalType === "10"   ? "مبروك! خصم 10% 🎉" :
+    finalType === "combo"? "مبروك! COMBO 🎉" :
+    "حظ سعيد 🎉";
+
+  overlay.innerHTML = `
+    <div>
+      <div style="font-size:22px;font-weight:900">${title}</div>
+      <div class="serial">Serial: ${serial}</div>
+      <div style="margin-top:10px;font-size:14px;opacity:.9">صوّر الشاشة وروّح بيها للفرع.</div>
+    </div>
+  `;
+
+  // ✅ سجّل السيريال في Firebase (لكل الأنواع)
+  await set(ref(db, `campaign/winners/${serial}`), {
+    createdAt: lastWinner.at,
+    redeemed: false,
+    type: finalType
+  });
+
 </script>
 
 </body>
