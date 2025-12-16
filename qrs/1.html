@@ -54,16 +54,26 @@
   const IMG_LUCK  = "../images/goodLuck.png";
 
   // ✅ اختيار نتيجة عادية (بدون 50%)
-  function pickNormalReward() {
-    const pool = [
-      IMG_10, IMG_10, IMG_10,
-      IMG_15, IMG_15,
-      IMG_25,
-      IMG_COMBO,
-      IMG_LUCK, IMG_LUCK, IMG_LUCK
-    ];
-    return pool[Math.floor(Math.random() * pool.length)];
-  }
+function pickNormalReward() {
+  const pool = [
+    // 10% كتير جداً
+    IMG_10, IMG_10, IMG_10, IMG_10, IMG_10, IMG_10, IMG_10,
+
+    // Combo كتير
+    IMG_COMBO, IMG_COMBO, IMG_COMBO, IMG_COMBO, IMG_COMBO,
+
+    // GoodLuck متوسط
+    IMG_LUCK, IMG_LUCK, IMG_LUCK,
+
+    // 15% قليل
+    IMG_15, IMG_15,
+
+    // 25% نادر
+    IMG_25
+  ];
+
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
   // ✅ Serial
   function makeSerial(seq) {
