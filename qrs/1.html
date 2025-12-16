@@ -2,21 +2,35 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <title>BigFried QR #1</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BigFried QR</title>
   <style>
-    body { font-family: Arial; text-align: center; padding: 40px; }
-    .win { color: green; font-size: 32px; font-weight: bold; }
-    .lose { color: red; font-size: 28px; font-weight: bold; }
+    html, body { margin:0; width:100%; height:100%; overflow:hidden; }
+    img { width:100vw; height:100vh; object-fit:cover; display:block; }
+    .overlay{
+      position:fixed; inset:0;
+      display:flex; flex-direction:column; justify-content:flex-end; align-items:center;
+      padding:24px; color:#fff; font-family:system-ui, Arial;
+      background:linear-gradient(transparent, rgba(0,0,0,.65));
+      text-align:center;
+    }
+    .serial{
+      font-size:18px; font-weight:800;
+      background:rgba(0,0,0,.45);
+      padding:10px 14px; border-radius:12px; margin-top:10px;
+    }
   </style>
 </head>
 <body>
 
-<h2>ثانية واحدة… بنحقق!</h2>
+<img id="resultImage" alt="result" />
+<div class="overlay" id="overlay" style="display:none"></div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, get, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getDatabase, ref, runTransaction, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+  // ✅ نفس config بتاعك
   const firebaseConfig = {
     apiKey: "AIzaSyAnE3HIxB7Vw5s8Z50RKYJbfchZfNdPfvI",
     authDomain: "bigfried-qr.firebaseapp.com",
@@ -31,31 +45,102 @@
   const app = initializeApp(firebaseConfig);
   const db  = getDatabase(app);
 
-  // رقم QR 1
-  const qrId = "1";
-  const qrRef = ref(db, "qrs/" + qrId);
+  // ✅ صورك
+  const IMG_10  = "../images/10.png";
+  const IMG_15  = "../images/15.png";
+  const IMG_25  = "../images/25.png";
+  const IMG_50  = "../images/50.png";
+  const IMG_COMBO = "../images/combo.png";
+  const IMG_LUCK  = "../images/goodLuck.png";
 
-  get(qrRef).then(snapshot => {
-    const data = snapshot.val();
+  // ✅ اختيار نتيجة عادية (بدون 50%)
+  function pickNormalReward() {
+    const pool = [
+      IMG_10, IMG_10, IMG_10,
+      IMG_15, IMG_15,
+      IMG_25,
+      IMG_COMBO,
+      IMG_LUCK, IMG_LUCK, IMG_LUCK
+    ];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
 
-    if (data && data.winner === true) {
-      document.body.innerHTML = `
-        <h1 class="lose">للأسف حد سبقك 😢</h1>
-        <p>تابعنا… في حاجات جامدة جاية في افتتاح BigFried 🔥</p>
-      `;
-    } else {
-      set(qrRef, {
-        winner: true,
-        time: new Date().toISOString()
-      });
+  // ✅ Serial
+  function makeSerial(seq) {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `BIG50-${y}${m}${day}-${String(seq).padStart(5,'0')}-${rand}`;
+  }
 
-      document.body.innerHTML = `
-        <h1 class="win">مبرووووووك! 🎉🔥</h1>
-        <p>إنت أول واحد لقى الـ QR ده!</p>
-        <p>استنى الافتتاح الكبير… وهديتك محجوزة ❤️</p>
-      `;
+  // ✅ هنا بنسجل كل Scan ونقرر 50% ولا لا
+  const campaignRef = ref(db, "campaign");
+
+  const tx = await runTransaction(campaignRef, (data) => {
+    if (!data) {
+      data = { scanCount: 0, sinceLast50: 0, serialSeq: 0 };
     }
+
+    // زوّد عداد الاسكانات
+    data.scanCount = (data.scanCount || 0) + 1;
+
+    // عدد الاسكانات من آخر مرة 50%
+    data.sinceLast50 = (data.sinceLast50 || 0) + 1;
+
+    const n = data.sinceLast50;
+
+    // ✅ Probability Ramp (50% نادر بس موجود)
+    let p = 0;
+    if (n <= 10) p = 0;
+    else if (n <= 20) p = 0.02;
+    else if (n <= 30) p = 0.05;
+    else if (n <= 40) p = 0.12;
+    else if (n <= 50) p = 0.25;
+    else p = 1; // بعد 50 اسكان: لازم يطلع
+
+    const win50 = Math.random() < p;
+
+    if (win50) {
+      data.serialSeq = (data.serialSeq || 0) + 1;
+      const serial = makeSerial(data.serialSeq);
+
+      data.lastWinner = { type: "50", serial, at: new Date().toISOString() };
+      data.sinceLast50 = 0; // Reset الدورة
+    } else {
+      data.lastWinner = { type: "normal" };
+    }
+
+    return data;
   });
+
+  const result = tx.snapshot.val();
+  const lastWinner = result?.lastWinner;
+
+  const imgEl = document.getElementById("resultImage");
+  const overlay = document.getElementById("overlay");
+
+  if (lastWinner?.type === "50") {
+    imgEl.src = IMG_50;
+    overlay.style.display = "flex";
+    overlay.innerHTML = `
+      <div>
+        <div style="font-size:22px;font-weight:900">مبرووووك! خصم 50% 🎉</div>
+        <div class="serial">Serial: ${lastWinner.serial}</div>
+        <div style="margin-top:10px;font-size:14px;opacity:.9">صوّر الشاشة وروّح بيها للفرع.</div>
+      </div>
+    `;
+
+    // سجل السيريال في قاعدة البيانات
+    await set(ref(db, `campaign/winners/${lastWinner.serial}`), {
+      createdAt: lastWinner.at,
+      redeemed: false
+    });
+
+  } else {
+    imgEl.src = pickNormalReward();
+  }
 </script>
 
 </body>
